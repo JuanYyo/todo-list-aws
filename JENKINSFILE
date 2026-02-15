@@ -5,6 +5,8 @@ pipeline {
 
         stage('Get Code') {
             steps {
+                // Esto limpia el workspace antes de clonar
+                cleanWs()
                 //Obtener código repositorio con credenciales para poder escribir en el repositorio y hacer push posteriormente
                 echo 'GET CODE STAGE'
                 git branch: 'develop',
