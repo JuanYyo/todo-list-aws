@@ -1,1 +1,59 @@
+pipeline {
+    agent any
 
+    stages {
+
+        stage('Get Code') {
+            steps {
+                // Esto limpia el workspace antes de clonar
+                cleanWs()
+                //Obtener código repositorio con credenciales para poder escribir en el repositorio y hacer push posteriormente
+                echo 'GET CODE STAGE'
+                git branch: 'master',
+                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
+                    credentialsId: 'github-token'
+                echo WORKSPACE
+                sh '''
+                    hostname
+                    echo $PWD
+                    echo ${WORKSPACE}
+                '''
+            }
+        }
+
+        stage('Deploy'){
+            steps{
+                echo 'DEPLOY STAGE'
+                echo 'Initiating Deployment'
+                sh '''
+                        sam validate --region us-east-1
+                        sam build
+                        sam deploy --config-env production --no-confirm-changeset --force-upload --no-fail-on-empty-changeset --no-progressbar       
+                '''
+            }
+        }
+
+        stage('Rest Test') {
+            steps {
+                echo 'REST STAGE'
+                script {
+                    def BASE_URL = sh(
+                        script: "aws cloudformation describe-stacks --stack-name todo-list-aws-production --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text",
+                        returnStdout: true
+                    ).trim()
+                    
+                    withEnv(["BASE_URL=${BASE_URL}"]) {
+                        sh '''
+                            echo $BASE_URL
+                            echo 'Initiating Integration Tests'
+                            . /opt/venv/bin/activate
+                            export PYTHONPATH=$WORKSPACE
+                            pytest -s test/integration/todoApiTest.py -m readonly
+                        '''
+                    }
+                }
+            }
+        }
+
+   }
+}
