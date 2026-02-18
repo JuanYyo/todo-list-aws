@@ -14,6 +14,7 @@ pipeline {
                 echo WORKSPACE
                 sh '''
                     hostname
+                    whoami
                     echo $PWD
                     echo ${WORKSPACE}
                 '''
@@ -29,6 +30,8 @@ pipeline {
                 unstash name:'code'
                 echo 'Initiating Deployment'
                 sh '''
+                        hostname
+                        whoami
                         sam validate --region us-east-1
                         sam build
                         sam deploy --config-env production --no-confirm-changeset --force-upload --no-fail-on-empty-changeset --no-progressbar       
@@ -56,6 +59,8 @@ pipeline {
                 }
 
                 sh '''
+                    hostname
+                    whoami
                     echo $BASE_URL
                     echo 'Initiating Integration Tests'
                     . /opt/venv/bin/activate
