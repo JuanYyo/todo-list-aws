@@ -51,12 +51,14 @@ pipeline {
                         sam build
                         sam deploy --config-env staging --no-confirm-changeset --force-upload --no-fail-on-empty-changeset --no-progressbar       
                 '''
-                def BASE_URL = sh(
-                    script: "aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text",
-                    returnStdout: true
-                ).trim()
-                writeFile file: 'base_url.txt', text: BASE_URL
-                stash name: 'base-url', includes: 'base_url.txt'
+                script {
+                    def BASE_URL = sh(
+                        script: "aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text",
+                        returnStdout: true
+                    ).trim()
+                    writeFile file: 'base_url.txt', text: BASE_URL
+                    stash name: 'base-url', includes: 'base_url.txt'
+                }
                 deleteDir()
             }
         }
