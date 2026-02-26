@@ -63,8 +63,8 @@ pipeline {
                             . /opt/venv/bin/activate
                             export PYTHONPATH=$WORKSPACE
                             pytest -s test/integration/todoApiTest.py --junitxml=result/test_result.xml
-                            junit 'result/test_result.xml'
                         '''
+                        junit 'result/test_result.xml'
                     }
                 }
             }
