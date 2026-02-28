@@ -100,20 +100,22 @@ pipeline {
         stage('Promote') {
             agent { label 'master' }
             steps {
-                unstash name:'code'
-                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                    sh """
-                        hostname
-                        whoami
-                        set -x
-                        git config merge.ours.driver true
-                        git fetch origin
-                        git checkout master || git checkout -b master origin/master
-                        git pull origin master
-                        git merge origin/develop --no-edit
-                        git remote set-url origin https://\${GIT_USER}:\${GIT_PASS}@github.com/JuanYyo/todo-list-aws.git
-                        git push origin master
-                    """
+                    git branch: 'develop',
+                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
+                    credentialsId: 'github-token'
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        sh """
+                            hostname
+                            whoami
+                            set -x
+                            git config merge.ours.driver true
+                            git fetch origin
+                            git checkout master || git checkout -b master origin/master
+                            git pull origin master
+                            git merge origin/develop --no-edit
+                            git remote set-url origin https://\${GIT_USER}:\${GIT_PASS}@github.com/JuanYyo/todo-list-aws.git
+                            git push origin master
+                        """
                 }
                 deleteDir()
             }
