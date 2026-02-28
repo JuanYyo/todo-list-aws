@@ -12,6 +12,7 @@ pipeline {
                 git branch: 'develop',
                     url: 'https://github.com/JuanYyo/todo-list-aws.git',
                     credentialsId: 'github-token'
+                sh 'wget -O samconfig.toml https://raw.githubusercontent.com/JuanYyo/todo-list-aws-config/staging/samconfig.toml'
                 echo WORKSPACE
                 sh '''
                     hostname
