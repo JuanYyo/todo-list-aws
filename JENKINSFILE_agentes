@@ -1,0 +1,122 @@
+pipeline {
+    agent none
+
+    stages {
+
+        stage('Get Code') {
+            agent { label 'master' }
+            steps {
+                //Obtener código repositorio con credenciales para poder escribir en el repositorio y hacer push posteriormente
+                echo 'GET CODE STAGE'
+                git branch: 'develop',
+                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
+                    credentialsId: 'github-token'
+                echo WORKSPACE
+                sh '''
+                    hostname
+                    whoami
+                    echo $PWD
+                    echo ${WORKSPACE}
+                '''
+                stash name:'code', includes:'**'
+                deleteDir()
+            }
+        }
+
+        stage('Static Tests') {
+            agent { label 'agente1' }
+            steps {
+                echo 'STATIC STAGE'
+                unstash name:'code'
+                sh '''#!/bin/bash
+                hostname
+                whoami
+                echo ${WORKSPACE}
+                . /opt/venv/bin/activate
+                flake8 --exit-zero --format=pylint src > flake8.out
+                bandit --exit-zero -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"
+                '''
+                stash name:'static-results', includes:'flake8.out,bandit.out'
+                deleteDir()
+
+            }
+        }
+
+        stage('Deploy'){
+            agent { label 'master' }
+            steps{
+                echo 'DEPLOY STAGE'
+                unstash name:'code'
+                echo 'Initiating Deployment'
+                sh '''
+                        hostname
+                        whoami
+                        sam validate --region us-east-1
+                        sam build
+                        sam deploy --config-env staging --no-confirm-changeset --force-upload --no-fail-on-empty-changeset --no-progressbar       
+                '''
+                script {
+                    def BASE_URL = sh(
+                        script: "aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text",
+                        returnStdout: true
+                    ).trim()
+                    writeFile file: 'base_url.txt', text: BASE_URL
+                    stash name: 'base-url', includes: 'base_url.txt'
+                }
+                deleteDir()
+            }
+        }
+
+        stage('Rest Test') {
+            agent { label 'agente2' }
+            steps {
+                echo 'REST STAGE'
+                unstash name:'code'
+                unstash name:'base-url'
+                script {
+                    env.BASE_URL = readFile('base_url.txt').trim()
+                }
+
+                sh '''
+                    hostname
+                    whoami
+                    echo $BASE_URL
+                    echo 'Initiating Integration Tests'
+                    . /opt/venv/bin/activate
+                    export PYTHONPATH=$WORKSPACE
+                    pytest -s test/integration/todoApiTest.py --junitxml=result/test_result.xml
+                '''
+                stash name: 'rest-test-results', includes: 'result/test_result.xml'
+            }
+            post {
+                    always {
+                        junit 'result/test_result.xml'
+                        deleteDir()
+                    }
+                }
+        }
+
+        stage('Promote') {
+            agent { label 'master' }
+            steps {
+                unstash name:'code'
+                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh """
+                        hostname
+                        whoami
+                        set -x
+                        git config merge.ours.driver true
+                        git fetch origin
+                        git checkout master || git checkout -b master origin/master
+                        git pull origin master
+                        git merge origin/develop --no-edit
+                        git remote set-url origin https://\${GIT_USER}:\${GIT_PASS}@github.com/JuanYyo/todo-list-aws.git
+                        git push origin master
+                    """
+                }
+                deleteDir()
+            }
+        }
+
+   }
+}
