@@ -12,7 +12,6 @@ pipeline {
                 git branch: 'master',
                     url: 'https://github.com/JuanYyo/todo-list-aws.git',
                     credentialsId: 'github-token'
-                sh 'wget -O samconfig.toml https://raw.githubusercontent.com/JuanYyo/todo-list-aws-config/production/samconfig.toml'
                 echo WORKSPACE
                 sh '''
                     hostname
@@ -26,6 +25,7 @@ pipeline {
             steps{
                 echo 'DEPLOY STAGE'
                 echo 'Initiating Deployment'
+                sh 'wget -O samconfig.toml https://raw.githubusercontent.com/JuanYyo/todo-list-aws-config/production/samconfig.toml'
                 sh '''
                         sam validate --region us-east-1
                         sam build
