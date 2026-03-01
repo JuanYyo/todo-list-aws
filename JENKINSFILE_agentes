@@ -9,9 +9,7 @@ pipeline {
             steps {
                 //Obtener código repositorio con credenciales para poder escribir en el repositorio y hacer push posteriormente
                 echo 'GET CODE STAGE'
-                git branch: 'develop',
-                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
-                    credentialsId: 'github-token'
+                checkout scm
                 sh 'wget -O samconfig.toml https://raw.githubusercontent.com/JuanYyo/todo-list-aws-config/staging/samconfig.toml'
                 echo WORKSPACE
                 sh '''
@@ -101,9 +99,7 @@ pipeline {
         stage('Promote') {
             agent { label 'master' }
             steps {
-                    git branch: 'develop',
-                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
-                    credentialsId: 'github-token'
+                    checkout scm
                     withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                         sh """
                             hostname
