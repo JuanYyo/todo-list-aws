@@ -6,6 +6,7 @@ import json
 import functools
 from botocore.exceptions import ClientError
 
+# Test comment
 
 def get_table(dynamodb=None):
     if not dynamodb:
