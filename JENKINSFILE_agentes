@@ -9,9 +9,7 @@ pipeline {
             steps {
                 //Obtener código repositorio con credenciales para poder escribir en el repositorio y hacer push posteriormente
                 echo 'GET CODE STAGE'
-                git branch: 'master',
-                    url: 'https://github.com/JuanYyo/todo-list-aws.git',
-                    credentialsId: 'github-token'
+                checkout scm
                 sh 'wget -O samconfig.toml https://raw.githubusercontent.com/JuanYyo/todo-list-aws-config/production/samconfig.toml'
                 echo WORKSPACE
                 sh '''
